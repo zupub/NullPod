@@ -1,8 +1,0 @@
-schema_version: 1
-module_path: libraries
-title: PlatformIO 第三方库集合
-scope:
-    - lib/
-source_files: []
-depends_on: []
-related_to: []

@@ -1,9 +1,0 @@
-schema_version: 1
-module_path: ""
-title: NullPod ESP32-S3 固件工程根
-scope:
-    - platformio.ini
-    - .gitignore
-source_files: []
-depends_on: []
-related_to: []

@@ -5,6 +5,7 @@
 A pocket-sized ESP32 device. · 口袋尺寸的 ESP32 多功能设备
 
 Video intro：[Bilibili · BV1bdJe6aEVS](https://www.bilibili.com/video/BV1bdJe6aEVS)
+
 Hardware (open source, Chinese site)：[https://oshwhub.com/zupub/project_vnrjysdh](https://oshwhub.com/zupub/project_vnrjysdh)
 
 <div align="center">
@@ -20,8 +21,6 @@ Hardware (open source, Chinese site)：[https://oshwhub.com/zupub/project_vnrjys
 </p>
 
 Firmware for a multi-purpose **ESP32-S3** handheld device. The codebase is organised as a **HAL (hardware abstraction layer) + carousel Launcher + independent Apps** stack, shipping apps such as compass, barometer, air mouse, IR remote, web file manager and Tetris.
-
-> 中文文档：[README.md](README.md)
 
 ---
 

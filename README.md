@@ -5,6 +5,7 @@
 A pocket-sized ESP32 device. · 口袋尺寸的 ESP32 多功能设备
 
 视频介绍：[Bilibili · BV1bdJe6aEVS](https://www.bilibili.com/video/BV1bdJe6aEVS)
+
 硬件开源：[https://oshwhub.com/zupub/project_vnrjysdh](https://oshwhub.com/zupub/project_vnrjysdh)
 
 <div align="center">
@@ -20,8 +21,6 @@ A pocket-sized ESP32 device. · 口袋尺寸的 ESP32 多功能设备
 </p>
 
 基于 **ESP32-S3** 的多功能掌上设备固件。以 HAL（硬件抽象层）+ 轮播式 Launcher + 独立 App 的分层结构组织代码，内置指南针、气压计、空中鼠标、红外遥控、Web 文件管理器、俄罗斯方块等应用。
-
-> English documentation: [README_EN.md](README_EN.md)
 
 ---
 
