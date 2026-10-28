@@ -1,4 +1,10 @@
-# NullPod Firmware
+# NullPod
+
+![NullPod](NullPod-cover.jpg)
+
+> A pocket-sized ESP32 device. · 口袋尺寸的 ESP32 多功能设备
+>
+> 视频介绍：[Bilibili · BV1bdJe6aEVS](https://www.bilibili.com/video/BV1bdJe6aEVS)
 
 **简体中文** | [English](README_EN.md)
 
