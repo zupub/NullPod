@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESP32-S3 SD卡文件管理器</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>ESP32-S3 SD卡文件管理器</h1>
+            <div class="status-indicator">
+                <div class="status-dot"></div>
+                <span>已连接</span>
+            </div>
+        </header>
+        
+        <div class="content">
+            <div class="sidebar">
+                <div class="upload-section">
+                    <h3>上传文件</h3>
+                    <div class="upload-area" id="uploadArea">
+                        <div class="upload-icon">📁</div>
+                        <p>点击选择文件或拖拽文件到此处</p>
+                        <input type="file" id="fileInput" class="file-input" multiple>
+                    </div>
+                    <button class="btn" id="uploadBtn" disabled>
+                        <span>开始上传</span>
+                    </button>
+                    
+                    <div class="progress-container" id="progressContainer">
+                        <div class="progress-info">
+                            <span id="progressText">上传中: 0%</span>
+                            <span id="speedText"></span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress" id="progress"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="upload-queue" id="uploadQueue"></div>
+                </div>
+                
+                <div>
+                    <h3>存储信息</h3>
+                    <div id="storageInfo">
+                        <p>正在加载...</p>
+                    </div>
+                </div>
+                
+                <!-- 修改：为新建文件夹部分添加了folder-section类，使其整体下移 -->
+                <div class="folder-section">
+                    <h3>新建文件夹</h3>
+                    <div class="new-folder-input">
+                        <input type="text" id="newFolderName" placeholder="文件夹名称">
+                        <button class="btn btn-secondary" onclick="createFolder()">创建</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="main-content">
+                <div class="toolbar">
+                    <button class="btn btn-secondary" onclick="refreshFileList()">刷新</button>
+                    <button class="btn btn-secondary" onclick="goUp()">上级目录</button>
+                </div>
+                
+                <div class="breadcrumb" id="breadcrumb">
+                    <a href="#" data-path="/">根目录</a>
+                </div>
+                
+                <div class="file-list">
+                    <div class="file-header">
+                        <div>名称</div>
+                        <div>大小</div>
+                        <div>修改时间</div>
+                        <div>操作</div>
+                    </div>
+                    <div id="fileListContent">
+                        <div class="file-item">
+                            <div>正在加载...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/app.js"></script>
+</body>
+</html>

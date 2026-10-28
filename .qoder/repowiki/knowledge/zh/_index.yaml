@@ -1,0 +1,52 @@
+# 知识卡导出索引文件
+schema_version: 1
+locale: zh-CN
+branch: Q0DeR-MaG1C-BrAnCh-Fo2-NoN-GiT-Or-No-C0MmIt
+nodes_managed: true
+exported_at: "2026-10-12T03:10:46Z"
+modules:
+    "":
+        dir_name: NullPod ESP32-S3 固件工程根
+        title: NullPod ESP32-S3 固件工程根
+        scope:
+            - platformio.ini
+            - .gitignore
+        source_files: []
+        children:
+            - data_assets
+            - firmware_core
+            - libraries
+        depends_on: []
+        related_to: []
+    data_assets:
+        dir_name: ESP32-S3 SD卡文件管理器 Web 前端
+        title: ESP32-S3 SD卡文件管理器 Web 前端
+        scope:
+            - data/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: firmware_core
+    firmware_core:
+        dir_name: 固件核心：应用调度与启动器
+        title: 固件核心：应用调度与启动器
+        scope:
+            - src/main.cpp
+            - src/launcher.cpp
+            - src/app_state.cpp
+            - src/common.cpp
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: data_assets
+    libraries:
+        dir_name: PlatformIO 第三方库集合
+        title: PlatformIO 第三方库集合
+        scope:
+            - lib/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
