@@ -1,15 +1,7 @@
 ![NullPod](NullPod-cover.jpg)
 
-# NullPod
-
-A pocket-sized ESP32 device. · 口袋尺寸的 ESP32 多功能设备
-
-Video intro：[Bilibili · BV1bdJe6aEVS](https://www.bilibili.com/video/BV1bdJe6aEVS)
-
-Hardware (open source, Chinese site)：[https://oshwhub.com/zupub/project_vnrjysdh](https://oshwhub.com/zupub/project_vnrjysdh)
-
 <div align="center">
-  
+
 ![PlatformIO](https://img.shields.io/badge/PlatformIO-espressif32-blue)
 ![ESP32-S3](https://img.shields.io/badge/MCU-ESP32--S3%20N16R8-red)
 ![License](https://img.shields.io/badge/License-MIT-green)
@@ -20,9 +12,13 @@ Hardware (open source, Chinese site)：[https://oshwhub.com/zupub/project_vnrjys
   <strong><a href="README.md">中文</a> | <a href="README_EN.md">English</a></strong>
 </p>
 
+# NullPod
+
 Firmware for a multi-purpose **ESP32-S3** handheld device. The codebase is organised as a **HAL (hardware abstraction layer) + carousel Launcher + independent Apps** stack, shipping apps such as compass, barometer, air mouse, IR remote, web file manager and Tetris.
 
----
+Video intro：[Bilibili · BV1bdJe6aEVS](https://www.bilibili.com/video/BV1bdJe6aEVS)
+
+Hardware (open source, Chinese site)：[https://oshwhub.com/zupub/project_vnrjysdh](https://oshwhub.com/zupub/project_vnrjysdh)
 
 ## Table of Contents
 
