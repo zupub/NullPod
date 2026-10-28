@@ -1,6 +1,23 @@
-# NullPod Firmware
+![NullPod](NullPod-cover.jpg)
 
-[简体中文](README.md) | **English**
+# NullPod
+
+A pocket-sized ESP32 device. · 口袋尺寸的 ESP32 多功能设备
+
+Video intro：[Bilibili · BV1bdJe6aEVS](https://www.bilibili.com/video/BV1bdJe6aEVS)
+Hardware (open source, Chinese site)：[https://oshwhub.com/zupub/project_vnrjysdh](https://oshwhub.com/zupub/project_vnrjysdh)
+
+<div align="center">
+  
+![PlatformIO](https://img.shields.io/badge/PlatformIO-espressif32-blue)
+![ESP32-S3](https://img.shields.io/badge/MCU-ESP32--S3%20N16R8-red)
+![License](https://img.shields.io/badge/License-MIT-green)
+
+</div>
+
+<p align="center">
+  <strong><a href="README.md">中文</a> | <a href="README_EN.md">English</a></strong>
+</p>
 
 Firmware for a multi-purpose **ESP32-S3** handheld device. The codebase is organised as a **HAL (hardware abstraction layer) + carousel Launcher + independent Apps** stack, shipping apps such as compass, barometer, air mouse, IR remote, web file manager and Tetris.
 
@@ -22,6 +39,7 @@ Firmware for a multi-purpose **ESP32-S3** handheld device. The codebase is organ
 - [Development Conventions](#development-conventions)
 - [Known Limitations](#known-limitations)
 - [Credits](#credits)
+- [License](#license)
 
 ---
 
@@ -285,7 +303,11 @@ Everything under `lib/` is vendored into the repository so builds are reproducib
 
 ## Credits
 
-- Firmware author: VINEX (boot screen signature `- @author VINEX`)
+- Part of the hardware circuit design and the boot screen are adapted from [海底捞【Rachel】迷你游戏机](https://oshwhub.com/eda_rgprdhwej/mason)
 - Thanks to the LovyanGFX, IRremote, NimBLE-Arduino, Adafruit, SparkFun and WiFiManager open-source projects.
 
-This repository does not currently include a LICENSE file. Add a licence before distributing it publicly.
+## License
+
+Released under the [MIT License](LICENSE). Copyright (c) 2026 zupub.
+
+Third-party libraries under `lib/` keep their own licenses; see the license files in each library directory.
