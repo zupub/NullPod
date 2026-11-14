@@ -11,7 +11,7 @@
 #include "icon_mouse.h"
 #include "icon_gyroscope.h"
 #include "icon_compass.h"
-#include "icon_barometer.h"
+#include "icon_woodfish.h"
 #include "icon_game.h"
 #include "icon_files.h"
 #include "icon_sdcard.h"
@@ -31,7 +31,7 @@ extern const uint16_t icon_left_click[64 * 64] PROGMEM;
 extern const uint16_t icon_right_click[64 * 64] PROGMEM;
 extern const uint16_t icon_gyroscope[64 * 64] PROGMEM;
 extern const uint16_t icon_compass[64 * 64] PROGMEM;
-extern const uint16_t icon_barometer[64 * 64] PROGMEM;
+extern const uint16_t icon_woodfish[64 * 64] PROGMEM;
 extern const uint16_t icon_game[64 * 64] PROGMEM;
 extern const uint16_t icon_files[64 * 64] PROGMEM;
 extern const uint16_t icon_sdcard[64 * 64] PROGMEM;

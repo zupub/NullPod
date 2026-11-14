@@ -49,11 +49,11 @@ On boot the device shows an icon carousel. Rotate the encoder (or use the D-pad)
 | Dashboard | Circular gauge dial: 1° per encoder click, 1/2/4/8 increment, RGB hue follows the angle (`CircularDial`) | Implemented |
 | LED | WS2812 breathing light: adjustable waveform, frequency, saturation, brightness range and hue (`BreathDemo`) | Implemented |
 | Remote | IR remote with virtual pad, code list, macros, IR learning and waveform view (`RemoteTV`) | Implemented |
-| Music | Electronic wooden fish: tap by key or shake, merit / today counters with daily reset stored in NVS (`WoodFish`) | Implemented |
+| Music | Audio playback (HAL reserves `Audio_*` API) | Placeholder |
 | Weather | Weather | Placeholder |
 | Compass | Compass: dial page / environment page (pressure, altitude, temperature) / spirit level (`Compass`) | Implemented |
 | Air Mouse | BLE air mouse — IMU orientation to pointer delta, buttons emulate left/right click (`AirMouse`) | Implemented |
-| Barometer | Barometer | Placeholder |
+| Woodfish | Electronic wooden fish: tap by key or shake, merit / today counters with daily reset stored in NVS (`WoodFish`) | Implemented |
 | Game | Tetris with high score persisted to NVS (`Tetris`) | Implemented |
 | Files | Wi-Fi AP + web file manager over LittleFS | Implemented |
 | SD Card | On-device SD card browser, detects `.nes` files (`FileBrowser`) | Implemented |
@@ -348,8 +348,8 @@ Everything under `lib/` is vendored into the repository so builds are reproducib
 
 ## Known Limitations
 
-- **Weather** and **Barometer** are still placeholders that only log; `Audio_*` and `BT_*` are declared in `hal.h` but not yet implemented.
-- The **Music** slot now launches the electronic wooden fish (`WoodFish`); its menu label and icon have not been renamed yet.
+- **Music** and **Weather** are still placeholders that only log; `Audio_*` and `BT_*` are declared in `hal.h` but not yet implemented.
+- **Woodfish** replaced the old Barometer slot; barometer readings are still shown on the Compass environment page.
 - Flash usage is close to the 4MB app slot limit (about 3.96MB, 94%); trim fonts / icon assets or adjust the partition table before adding features.
 - The `Keep WiFi` switch only affects what happens when the WiFi app exits — an established STA connection is not dropped immediately.
 - The periodic update calls in `HAL::Update()` (`hal.cpp`) are commented out, so each app drives its own sensor refresh.

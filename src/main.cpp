@@ -59,7 +59,6 @@ void loop()
 
     case STATE_MUSIC:
         Serial.println(">>> Music App");
-        g_woodfish.Main();
         appState = STATE_MENU;
         break;
 
@@ -80,8 +79,9 @@ void loop()
         appState = STATE_MENU;
         break;
 
-    case STATE_BAROMETER:
-        Serial.println(">>> Barometer App");
+    case STATE_WOODFISH:
+        Serial.println(">>> Woodfish App");
+        g_woodfish.Main();
         appState = STATE_MENU;
         break;
 
@@ -171,10 +171,10 @@ void loop()
         g_requestCompass = false;
         appState = STATE_COMPASS;
     }
-    else if (g_requestBarometer)
+    else if (g_requestWoodfish)
     {
-        g_requestBarometer = false;
-        appState = STATE_BAROMETER;
+        g_requestWoodfish = false;
+        appState = STATE_WOODFISH;
     }
     else if (g_requestGame)
     {

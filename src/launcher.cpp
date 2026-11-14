@@ -34,7 +34,7 @@ void Launcher::Init()
     menuItems[5] = {"Weather", rgb565(231, 76, 60), icon_weather, &actionWeather};
     menuItems[6] = {"Compass", rgb565(149, 165, 166), icon_compass, &actionCompass};
     menuItems[7] = {"Air Mouse", rgb565(52, 73, 94), icon_mouse, &actionAirMouse};
-    menuItems[8] = {"Barometer", rgb565(180, 100, 255), icon_barometer, &actionBarometer};
+    menuItems[8] = {"Woodfish", rgb565(180, 100, 255), icon_woodfish, &actionWoodfish};
     menuItems[9] = {"Game", rgb565(255, 160, 0), icon_game, &actionGame};
     menuItems[10] = {"Files", rgb565(127, 140, 141), icon_files, &actionFiles};
     menuItems[11] = {"SD Card", rgb565(93, 63, 211), icon_sdcard, &actionSDCardEntry};
@@ -66,7 +66,7 @@ void Launcher::Main()
         // 检查是否请求切换 App
         if (g_requestScreenSaver || g_requestDial || g_requestLed || g_requestRemote ||
             g_requestMusic || g_requestWeather || g_requestCompass || g_requestAirMouse ||
-            g_requestBarometer || g_requestGame || g_requestFile || g_requestSD ||
+            g_requestWoodfish || g_requestGame || g_requestFile || g_requestSD ||
             g_requestWiFi || g_requestSettings || g_requestAbout || g_requestMenu)
         {
             break;
@@ -443,7 +443,7 @@ void actionWeather(void) { App_RequestWeather(); }
 void actionAirMouse(void) { App_RequestAirMouse(); }
 void actionGyroscope(void) { App_RequestGyroscope(); }
 void actionCompass(void) { App_RequestCompass(); }
-void actionBarometer(void) { App_RequestBarometer(); }
+void actionWoodfish(void) { App_RequestWoodfish(); }
 void actionGame(void) { App_RequestGame(); }
 void actionFiles(void) { App_RequestFile(); }
 void actionSDCardEntry(void) { App_RequestSD(); }

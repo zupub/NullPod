@@ -49,11 +49,11 @@
 | Dashboard | 圆形刻度仪表盘：编码器细调 1°/格，增量 1/2/4/8，RGB 随角度变色（`CircularDial`） | 已实现 |
 | LED | WS2812 呼吸灯：四种波形，可调频率、饱和度、亮度区间与色相（`BreathDemo`） | 已实现 |
 | Remote | 红外遥控器，含虚拟按键、码库、宏、IR 学习与波形显示（`RemoteTV`） | 已实现 |
-| Music | 电子木鱼：按键或晃动敲击，功德 / 今日计数与跨天清零存 NVS（`WoodFish`） | 已实现 |
+| Music | 音乐播放（HAL 已预留 `Audio_*` 接口） | 占位 |
 | Weather | 天气 | 占位 |
 | Compass | 指南针：罗盘页 / 环境页（气压·海拔·温度）/ 水平仪页（`Compass`） | 已实现 |
 | Air Mouse | BLE 空中鼠标，IMU 姿态转指针位移，按键模拟左右键（`AirMouse`） | 已实现 |
-| Barometer | 气压计 | 占位 |
+| Woodfish | 电子木鱼：按键或晃动敲击，功德 / 今日计数与跨天清零存 NVS（`WoodFish`） | 已实现 |
 | Game | 俄罗斯方块，最高分持久化到 NVS（`Tetris`） | 已实现 |
 | Files | WiFi 热点 + Web 文件管理器（LittleFS） | 已实现 |
 | SD Card | 屏幕端 SD 卡文件浏览，识别 `.nes` 文件（`FileBrowser`） | 已实现 |
@@ -348,8 +348,8 @@ LittleFS 的 SubType 沿用 `spiffs` 以兼容工具链，挂载时按名称 `li
 
 ## 已知限制
 
-- 仍有 **Weather / Barometer** 两个菜单项是占位，进入后仅打印日志；`hal.h` 中的 `Audio_*`、`BT_*` 接口已声明但尚未实现。
-- **Music** 槽位实际进入的是电子木鱼（`WoodFish`），菜单文案与图标尚未改名。
+- 仍有 **Music / Weather** 两个菜单项是占位，进入后仅打印日志；`hal.h` 中的 `Audio_*`、`BT_*` 接口已声明但尚未实现。
+- **Woodfish** 由原 Barometer 槽位替换而来，气压计读数仍在 Compass 的环境页中展示。
 - 固件 Flash 占用已接近 app 分区上限（约 3.96MB / 4MB，94%），新增功能前建议先精简字体、图标资源或调整分区表。
 - 设置中的「Keep WiFi」只在 WiFi 应用退出时决定是否断开射频，运行中的 STA 连接不会实时断开。
 - `hal.cpp` 中 `HAL::Update()` 的周期更新调用目前被注释，各 App 需自行驱动传感器刷新。
