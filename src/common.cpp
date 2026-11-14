@@ -111,40 +111,36 @@ void drawScaledIcon(LGFX_Sprite *canvas, int16_t x, int16_t y, float scale, cons
     }
 }
 
-// 模拟 TFT_eSPI 的 drawWedgeLine
-void drawWedgeLine(LGFX_Sprite *s, float x0, float y0, float x1, float y1, float w0, float w1, uint32_t color, uint32_t bg)
+// 模拟 TFT_eSPI 的 drawWedgeLine：按线段法线方向撑出两根不同宽度的边
+void drawWedgeLine(LGFX_Sprite *s, float x0, float y0, float x1, float y1, float w0, float w1, uint16_t color, uint16_t bg)
 {
+    (void)bg; // LovyanGFX 直接在 Sprite 上实心填充，不需要背景色
+
     float dx = x1 - x0;
     float dy = y1 - y0;
     float len = sqrtf(dx * dx + dy * dy);
-    if (len == 0)
+    if (len < 0.001f)
         return;
 
-    float ex = -dy / len;
-    float ey = dx / len;
+    // 线段单位法线，用于生成两侧边
+    float nx = -dy / len;
+    float ny = dx / len;
+    float h0 = w0 * 0.5f;
+    float h1 = w1 * 0.5f;
 
-    // 中心轴线
-    float cx0 = x0, cy0 = y0;
-    float cx1 = x1, cy1 = y1;
+    // 楔形主体：两端各偏移半个线宽，构成四边形后拆成两个三角形
+    s->fillTriangle(x0 + nx * h0, y0 + ny * h0,
+                    x1 + nx * h1, y1 + ny * h1,
+                    x1 - nx * h1, y1 - ny * h1,
+                    color);
+    s->fillTriangle(x0 + nx * h0, y0 + ny * h0,
+                    x1 - nx * h1, y1 - ny * h1,
+                    x0 - nx * h0, y0 - ny * h0,
+                    color);
 
-    int steps = 6; // 平滑度
-
-    for (int i = -steps; i <= steps; i++)
-    {
-        float t = (float)i / (float)steps;
-        float w = (w0 * (1 - t * 0.5f) + w1 * (1 + t * 0.5f)) * 0.5f;
-
-        float ox = ex * w * t;
-        float oy = ey * w * t;
-
-        uint8_t alpha = 255 - abs(i) * (255 / (steps + 1));
-
-        s->drawLine(
-            cx0 + ox, cy0 + oy,
-            cx1 + ox, cy1 + oy,
-            s->color565(
-                ((color >> 11) & 0x1F) * alpha / 255,
-                ((color >> 5) & 0x3F) * alpha / 255,
-                (color & 0x1F) * alpha / 255));
-    }
+    // 两端圆形端帽（线宽 >= 3 时才看得出效果）
+    if (w0 >= 3.0f)
+        s->fillCircle(x0, y0, h0, color);
+    if (w1 >= 3.0f)
+        s->fillCircle(x1, y1, h1, color);
 }

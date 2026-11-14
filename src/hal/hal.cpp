@@ -20,8 +20,61 @@ void HAL::Init()
     MAG_Init();
     DPS_Init();
     // RGB_Init();
+    Buzzer_Init();
     beep(700, 20);
     delay(1000);
+}
+
+// 12/24 小时制（缓存 + NVS 持久化）
+// -1 = 尚未从 NVS 读取
+static int time_format_24h = -1;
+
+bool HAL::isTime24Hour()
+{
+    if (time_format_24h < 0)
+    {
+        Preferences prefs;
+        prefs.begin(CONFIG_NAMESPACE);
+        time_format_24h = (prefs.getUChar(TIME_FORMAT_KEY, 24) == 12) ? 0 : 1;
+        prefs.end();
+    }
+    return time_format_24h != 0;
+}
+
+void HAL::setTime24Hour(bool on)
+{
+    time_format_24h = on ? 1 : 0;
+
+    Preferences prefs;
+    prefs.begin(CONFIG_NAMESPACE);
+    prefs.putUChar(TIME_FORMAT_KEY, on ? 24 : 12);
+    prefs.end();
+}
+
+// WiFi 保持连接：开启后 WiFi 配置 App 退出时不断开射频（缓存 + NVS 持久化）
+// -1 = 尚未从 NVS 读取；默认关闭（保持省电的旧行为）
+static int wifi_keep_alive = -1;
+
+bool HAL::isWifiKeepAlive()
+{
+    if (wifi_keep_alive < 0)
+    {
+        Preferences prefs;
+        prefs.begin(CONFIG_NAMESPACE);
+        wifi_keep_alive = prefs.getUChar(WIFI_KEEPALIVE_KEY, 0) ? 1 : 0;
+        prefs.end();
+    }
+    return wifi_keep_alive != 0;
+}
+
+void HAL::setWifiKeepAlive(bool on)
+{
+    wifi_keep_alive = on ? 1 : 0;
+
+    Preferences prefs;
+    prefs.begin(CONFIG_NAMESPACE);
+    prefs.putUChar(WIFI_KEEPALIVE_KEY, on ? 1 : 0);
+    prefs.end();
 }
 
 void HAL::Update()

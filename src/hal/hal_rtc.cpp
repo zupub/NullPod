@@ -3,10 +3,8 @@
 #include "SensorPCF8563.hpp"
 
 #include <time.h>
-#include <WiFi.h>
-
-const char *ssid = "hotspot";
-const char *password = "password";
+#include <sys/time.h>
+#include <esp_sntp.h>
 
 SensorPCF8563 rtc;
 uint32_t lastMillis;
@@ -47,53 +45,70 @@ void HAL::adjustSysTime()
     settimeofday(&now, NULL);
 }
 
-void HAL::syncNetworkTime()
+// ============ NTP 网络对时（非阻塞）============
+namespace
 {
-    uint8_t timeout;
+    HAL::NtpResult s_ntpResult = HAL::NTP_IDLE;
+    uint32_t s_ntpStartMs = 0;
 
-    Serial.println();
-    Serial.print("Connecting to ");
-    Serial.println(ssid);
+    const uint32_t NTP_TIMEOUT_MS = 20000;    // 连 WiFi + 等 SNTP 回包的总超时
+    const long NTP_GMT_OFFSET_SEC = 8 * 3600; // UTC+8，无夏令时
+}
 
-    WiFi.begin(ssid, password);
+void HAL::Ntp_Begin()
+{
+    if (s_ntpResult == NTP_RUNNING)
+        return;
 
-    while (WiFi.status() != WL_CONNECTED)
+    // 复用 WiFi App 存进 NVS 的配置发起连接，不再写死账号
+    Wifi_Init();
+    if (!Wifi_IsConnected())
+        Wifi_Connect();
+
+    // 清掉上一次的同步状态，避免刚进页面就被判成“已同步”
+    sntp_set_sync_status(SNTP_SYNC_STATUS_RESET);
+    configTime(NTP_GMT_OFFSET_SEC, 0, "pool.ntp.org", "ntp.aliyun.com", "time.nist.gov");
+
+    s_ntpStartMs = millis();
+    s_ntpResult = NTP_RUNNING;
+    Serial.printf("[NTP] begin, wifi=%d\n", (int)Wifi_IsConnected());
+}
+
+HAL::NtpResult HAL::Ntp_Update()
+{
+    if (s_ntpResult != NTP_RUNNING)
+        return s_ntpResult;
+
+    // SNTP 在后台回包后状态变为 COMPLETED，此时把时间写进 PCF8563
+    if (sntp_get_sync_status() == SNTP_SYNC_STATUS_COMPLETED)
     {
-        delay(500);
-        Serial.print(".");
-        timeout++;
-        if (timeout > 30)
-        {
-            Serial.println(" timeout.");
-            Serial.println();
-            return;
-        }
+        time_t now = time(nullptr);
+        struct tm t;
+        localtime_r(&now, &t);
+
+        rtc.setDateTime(t.tm_year + 1900, t.tm_mon + 1, t.tm_mday,
+                        t.tm_hour, t.tm_min, t.tm_sec);
+        adjustSysTime(); // RTC -> 系统时间，保证两边一致
+
+        s_ntpResult = NTP_OK;
+        Serial.printf("[NTP] synced: %04d-%02d-%02d %02d:%02d:%02d\n",
+                      t.tm_year + 1900, t.tm_mon + 1, t.tm_mday,
+                      t.tm_hour, t.tm_min, t.tm_sec);
+        return s_ntpResult;
     }
 
-    Serial.println("WiFi connected");
-    Serial.println("IP address: ");
-    Serial.println(WiFi.localIP());
-    Serial.println("Contacting time server...");
+    if (millis() - s_ntpStartMs >= NTP_TIMEOUT_MS)
+    {
+        s_ntpResult = NTP_FAIL;
+        Serial.printf("[NTP] timeout, wifi=%d\n", (int)Wifi_IsConnected());
+    }
 
-    const long gmtOffset_sec = 8 * 3600; // UTC+8 小时
-    const int daylightOffset_sec = 0;    // 无夏令时
+    return s_ntpResult;
+}
 
-    configTime(gmtOffset_sec, daylightOffset_sec, "time.nist.gov", "0.pool.ntp.org", "1.pool.ntp.org"); // 配置NTP
-    Serial.println("Waiting for time synchronization...");
-    delay(3000);
-
-    struct tm timeinfo;
-    timeinfo.tm_year = 0;
-    getLocalTime(&timeinfo, 5000);
-    Serial.printf("Now is : %d-%02d-%02d %02d:%02d:%02d\n", (timeinfo.tm_year) + 1900, (timeinfo.tm_mon) + 1, timeinfo.tm_mday, timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
-    Serial.println("\nSet time to RTC...");
-    rtc.setDateTime((timeinfo.tm_year) + 1900, (timeinfo.tm_mon) + 1, timeinfo.tm_mday, timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
-
-    Serial.println("Time sync completed, disconnecting WiFi...");
-    WiFi.disconnect(true, true);
-    WiFi.mode(WIFI_OFF);
-    Serial.println("WiFi disconnected.");
-    Serial.println("");
+void HAL::Ntp_Reset()
+{
+    s_ntpResult = NTP_IDLE;
 }
 
 void HAL::setTimeFromCompileTime()

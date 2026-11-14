@@ -9,12 +9,12 @@
 </div>
 
 <p align="center">
-  <strong><a href="README.md">中文</a> | <a href="README_EN.md">English</a></strong>
+  <strong><a href="README.md">中文</a> | <a href="README.en.md">English</a></strong>
 </p>
 
 # NullPod
 
-Firmware for a multi-purpose **ESP32-S3** handheld device. The codebase is organised as a **HAL (hardware abstraction layer) + carousel Launcher + independent Apps** stack, shipping apps such as compass, barometer, air mouse, IR remote, web file manager and Tetris.
+Firmware for a multi-purpose **ESP32-S3** handheld device. The codebase is organised as a **HAL (hardware abstraction layer) + carousel Launcher + independent Apps** stack, shipping apps such as compass, air mouse, IR remote, Wi-Fi provisioning, web file manager, settings, wooden fish and Tetris.
 
 Video intro：[Bilibili · BV1bdJe6aEVS](https://www.bilibili.com/video/BV1bdJe6aEVS)
 
@@ -28,6 +28,7 @@ Hardware (open source, Chinese site)：[https://oshwhub.com/zupub/project_vnrjys
 - [Architecture](#architecture)
 - [Getting Started](#getting-started)
 - [Web File Manager](#web-file-manager)
+- [Settings & Wi-Fi](#settings--wi-fi)
 - [Adding a New App](#adding-a-new-app)
 - [Partition Tables](#partition-tables)
 - [Third-Party Libraries](#third-party-libraries)
@@ -45,10 +46,10 @@ On boot the device shows an icon carousel. Rotate the encoder (or use the D-pad)
 | Menu entry | Description | Status |
 | --- | --- | --- |
 | Matrix | Digital rain screen saver (`DigitalRainAnimation`) | Implemented |
-| Dashboard | Dial / dashboard | Placeholder |
-| LED | WS2812 breathing-light demo (`BreathDemo`) | Implemented |
+| Dashboard | Circular gauge dial: 1° per encoder click, 1/2/4/8 increment, RGB hue follows the angle (`CircularDial`) | Implemented |
+| LED | WS2812 breathing light: sine / triangle / pulse / noise waveforms with adjustable frequency, saturation, brightness range and hue (`BreathDemo`) | Implemented |
 | Remote | IR remote with virtual pad, code list, macros, IR learning and waveform view (`RemoteTV`) | Implemented |
-| Music | Audio playback (HAL reserves `Audio_*` API) | Placeholder |
+| Music | Electronic wooden fish: tap by key or shake, merit / today counters with daily reset stored in NVS (`WoodFish`) | Implemented |
 | Weather | Weather | Placeholder |
 | Compass | Compass: dial page / environment page (pressure, altitude, temperature) / spirit level (`Compass`) | Implemented |
 | Air Mouse | BLE air mouse — IMU orientation to pointer delta, buttons emulate left/right click (`AirMouse`) | Implemented |
@@ -56,8 +57,8 @@ On boot the device shows an icon carousel. Rotate the encoder (or use the D-pad)
 | Game | Tetris with high score persisted to NVS (`Tetris`) | Implemented |
 | Files | Wi-Fi AP + web file manager over LittleFS | Implemented |
 | SD Card | On-device SD card browser, detects `.nes` files (`FileBrowser`) | Implemented |
-| WiFi | Wi-Fi provisioning | Placeholder |
-| Settings | Settings (currently only triggers network time sync) | Placeholder |
+| WiFi | Wi-Fi provisioning: AP portal `esp-nullpod-XXXXXX` plus network info page (`WiFiManagerApp`) | Implemented |
+| Settings | Settings: Keep WiFi / buzzer / brightness / 12·24-hour clock / network time (`SettingsApp`) | Implemented |
 | About | System info: RAM / PSRAM / Flash usage rings and CPU temperature (`AboutApp`) | Implemented |
 
 Other capabilities:
@@ -66,6 +67,8 @@ Other capabilities:
 - Touch gestures: tap, long press, swipe up / down / left / right (`TouchGesture`).
 - Rotary encoder counted in hardware via PCNT; keys handled by a shared `Button` class (short/long press, debounce).
 - On-screen colour-coded logging (`HAL_LOG_INFO/WARN/ERROR`) for field debugging plus file/line-tagged serial logs (`HAL_LOGI/W/E`).
+- Status bar refreshes every second: RTC time (follows the 12/24-hour setting), Wi-Fi icon and battery icon; holding the power key for 2 s powers the device off with a beep and a progress bar.
+- Settings (brightness, buzzer, time format, Keep WiFi) and Wi-Fi credentials are persisted in the `config` NVS namespace; network time sync uses the non-blocking `HAL::Ntp_Begin()` / `Ntp_Update()` pair.
 
 ## Hardware
 
@@ -121,10 +124,16 @@ NullPod_Master/
     │   ├── hal_dps.cpp       # BMP280 temperature/pressure/altitude
     │   ├── hal_rtc.cpp       # PCF8563 and network time sync
     │   ├── hal_sdcard.cpp    # SD mount and directory listing
-    │   ├── hal_power.cpp     # Power latch, shutdown, battery level
+    │   ├── hal_power.cpp     # Power latch, shutdown, battery level, backlight
     │   ├── hal_buzzer.cpp    # Buzzer
+    │   ├── hal_rgb.cpp       # Shared WS2812 driver for the whole project
+    │   ├── hal_wifi.cpp      # WiFiManager provisioning and network info
     │   └── Button.cpp/.h     # Button state machine
     ├── apps/                 # One class per app, each exposing Main()
+    │   ├── DigitalRainAnimation / CircularDial / BreathDemo / RemoteTV
+    │   ├── Compass / AirMouse / FileBrowser / FileManager
+    │   ├── WiFiManagerApp / SettingsApp / AboutApp
+    │   └── game/             # Tetris.cpp, WoodFish.cpp
     └── assets/               # Fonts, icons, images (some embedded into flash)
 ```
 
@@ -157,6 +166,13 @@ Apps only touch hardware through the `HAL::` namespace (`HAL::GetCanvas()`, `HAL
 | `HAL_LOGI / HAL_LOGW / HAL_LOGE` | Serial, with `file:line` | HAL-level debugging |
 | `HAL_LOG_INFO / WARN / ERROR` | On-screen canvas (colour tags) | Field debugging without a serial console |
 
+### Wi-Fi and network time
+
+- `hal_wifi.cpp` wraps WiFiManager. Every operation is non-blocking and driven by the owning app calling `HAL::Wifi_Update()` in its main loop; the hotspot is always `esp-nullpod-` plus the last 3 MAC bytes.
+- Provisioning results (SSID / password) go to NVS; `HAL::Wifi_HasSaved()` reports whether a network is stored and `HAL::Wifi_Forget()` clears it.
+- Time sync is started by `HAL::Ntp_Begin()` and polled with `HAL::Ntp_Update()`, returning `NTP_IDLE / NTP_RUNNING / NTP_OK / NTP_FAIL`; a successful sync is written to the PCF8563. `HAL::Ntp_Reset()` abandons the current request.
+- The `Keep WiFi` switch decides whether the radio stays up when the WiFi app exits (`HAL::isWifiKeepAlive()`), trading power for connectivity.
+
 ## Getting Started
 
 ### Requirements
@@ -185,6 +201,8 @@ pio device monitor
 ```
 
 > After switching to a new partition table for the first time, run `pio run -t erase` once so stale partition data cannot break the LittleFS mount.
+>
+> The current firmware already uses about 94% of the 4MB app slot (less than 250KB free), so keep headroom in mind before adding features.
 
 ### Key settings
 
@@ -223,6 +241,45 @@ Join the hotspot and use a browser to browse, upload, download, delete, create f
 | `/storage` | GET | Storage information |
 
 If the static files are missing the firmware degrades to API-only mode — check that `pio run -t uploadfs` has been run.
+
+## Settings & Wi-Fi
+
+### Wi-Fi provisioning
+
+Launching the **WiFi** app first shows a prompt page (it enters provisioning when the countdown ends, or immediately on OK):
+
+| Item | Value |
+| --- | --- |
+| Hotspot | `esp-nullpod-XXXXXX` (last 3 MAC bytes) |
+| Portal URL | `http://192.168.4.1` |
+
+Once configured, the page switches to network info and shows SSID / IP / gateway / channel / signal strength / uptime. Credentials are stored in NVS and reconnect automatically next time; long-press OK to forget the network and provision again.
+
+> This hotspot is for internet access (provisioning + time sync) and is independent from the `ESP32-S3-SD-Manager` hotspot opened by the **Files** app, which only serves the file manager.
+
+### Settings
+
+The **Settings** app is a list-style page: rotate the knob or use up/down to move, OK to confirm, power key to go back one level (closes a dialog when one is open).
+
+| Item | Type | Notes |
+| --- | --- | --- |
+| Keep WiFi | Toggle | Keeps the radio up after the WiFi app exits; off by default |
+| Buzzer | Toggle | Global buzzer switch, effective immediately |
+| Brightness | Slider | Backlight 10%–100%, live preview, written to NVS on OK |
+| Time Format | 12 / 24 hour | Affects the status bar and settings time display |
+| Network Time | Action | NTP sync (`pool.ntp.org`), written to the RTC on success |
+
+Keys written to NVS (namespace `config`):
+
+| Key | Meaning |
+| --- | --- |
+| `lcd_bk` | Backlight brightness |
+| `buzzer_en` | Buzzer switch |
+| `time_fmt` | 12 / 24-hour clock |
+| `wifi_keep` | Keep WiFi |
+| `wifi_ssid` / `wifi_password` | Wi-Fi credentials |
+
+> Game apps use their own namespaces: the Tetris high score lives in `tetris` and the wooden fish counters in `woodfish`.
 
 ## Adding a New App
 
@@ -291,9 +348,12 @@ Everything under `lib/` is vendored into the repository so builds are reproducib
 
 ## Known Limitations
 
-- Several menu entries (Dashboard / Music / Weather / Barometer / WiFi / Settings) are placeholders that only log or do minimal work; `Audio_*` and `BT_*` are declared in `hal.h` but not yet implemented.
+- **Weather** and **Barometer** are still placeholders that only log; `Audio_*` and `BT_*` are declared in `hal.h` but not yet implemented.
+- The **Music** slot now launches the electronic wooden fish (`WoodFish`); its menu label and icon have not been renamed yet.
+- Flash usage is close to the 4MB app slot limit (about 3.96MB, 94%); trim fonts / icon assets or adjust the partition table before adding features.
+- The `Keep WiFi` switch only affects what happens when the WiFi app exits — an established STA connection is not dropped immediately.
 - The periodic update calls in `HAL::Update()` (`hal.cpp`) are commented out, so each app drives its own sensor refresh.
-- `RGB_Init()` is commented out in `HAL::Init()`; the WS2812 strip is initialised by the LED app itself.
+- `RGB_Init()` is commented out in `HAL::Init()`; the WS2812 is initialised on demand by the LED / Dashboard apps (`hal_rgb.cpp` guarantees it only runs once).
 - The web file manager runs in AP mode with a hard-coded hotspot password in `FileManager.cpp` — change it before any public release.
 
 ## Credits

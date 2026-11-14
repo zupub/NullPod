@@ -293,13 +293,14 @@ void drawBatteryIcon(LGFX_Sprite *s, int16_t x, int16_t y, int16_t w, int16_t h,
 // ============ WiFi 小图标（16x16）============
 void drawWiFiIcon(LGFX_Sprite *s, int16_t x, int16_t y, bool connected)
 {
-    uint16_t col = connected ? WIFI_ON_COL : WIFI_OFF_COL;
+    // icon_wifi_thin 是 32x32 的白色单色位图（0x0000 透明），颜色由这里决定：
+    // 已连接=白，未连接=灰（置灰），保证状态栏图标与实际连接状态一致
+    const uint16_t col = connected ? WIFI_ON_COL : WIFI_OFF_COL;
 
     int icon_length = 32;
     float scale = 0.6;
     int newSize = (int)(icon_length * scale);
 
-    // const uint16_t *src = icon_wifi_small;
     const uint16_t *src = icon_wifi_thin;
 
     for (int dy = 0; dy < newSize; dy++)
@@ -309,15 +310,10 @@ void drawWiFiIcon(LGFX_Sprite *s, int16_t x, int16_t y, bool connected)
             int sx = (dx * icon_length) / newSize;
             int sy = (dy * icon_length) / newSize;
 
-            uint16_t pixel = pgm_read_word(&src[sy * icon_length + sx]);
-            if (pixel == 0x0000) // 透明
+            if (pgm_read_word(&src[sy * icon_length + sx]) == 0x0000) // 透明
                 continue;
 
-            uint8_t sr = (pixel >> 11) & 0x1F;
-            uint8_t sg = (pixel >> 5) & 0x3F;
-            uint8_t sb = pixel & 0x1F;
-
-            s->drawPixel(x + dx, y + dy, (sr << 11) | (sg << 5) | sb);
+            s->drawPixel(x + dx, y + dy, col);
         }
     }
 }
@@ -337,10 +333,21 @@ void Launcher::drawStatusBar()
 
     // ---- 中间：时间（从 HAL 取真实 RTC/系统时间）----
     tm *now = HAL::GetLocalTime();
-    char timeBuf[6];
+    char timeBuf[16];
     if (now && now->tm_year > 100) // 有效时间（year > 2000）
     {
-        snprintf(timeBuf, sizeof(timeBuf), "%02d:%02d", now->tm_hour, now->tm_min);
+        if (HAL::isTime24Hour())
+        {
+            snprintf(timeBuf, sizeof(timeBuf), "%02d:%02d", now->tm_hour, now->tm_min);
+        }
+        else
+        {
+            int h12 = now->tm_hour % 12;
+            if (h12 == 0)
+                h12 = 12;
+            snprintf(timeBuf, sizeof(timeBuf), "%s %d:%02d", now->tm_hour < 12 ? "AM" : "PM",
+                     h12, now->tm_min);
+        }
     }
     else // RTC 未初始化，显示 "--:--"
     {
@@ -356,7 +363,7 @@ void Launcher::drawStatusBar()
     int16_t rx = 20;
     int16_t iy = 3;
 
-    bool wifiOn = true;
+    bool wifiOn = HAL::Wifi_IsConnected(); // 只有 WiFi App 里连上过才亮，平时省电离线
     bool btOn = true;
 
     drawWiFiIcon(canvas, rx, iy, wifiOn);
@@ -420,8 +427,10 @@ void Launcher::drawHintBar()
     canvas->setTextColor(TEXT_DIM);
     canvas->setTextSize(1);
     canvas->setFont(&FreeSans9pt7b);
-    canvas->setCursor(40, HINT_AREA_Y + 8);
-    canvas->print("SP: Select  LP: Exit");
+    // 提示文案较长，按实际字宽居中，避免右侧贴边
+    const char *hint = "OK: select  PWR: exit";
+    canvas->setCursor((SCREEN_WIDTH - canvas->textWidth(hint)) / 2, HINT_AREA_Y + 8);
+    canvas->print(hint);
 }
 
 // ============ Action 回调 ============

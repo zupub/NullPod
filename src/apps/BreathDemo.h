@@ -7,15 +7,15 @@
 #include "app_state.h"
 
 // ============ 呼吸灯区域 ============
-#define BD_STATUS_H 28
-#define BD_WAVE_Y 40
-#define BD_WAVE_H 120
+#define BD_STATUS_H 44
+#define BD_WAVE_Y 52
+#define BD_WAVE_H 116
 #define BD_WAVE_X 10
 #define BD_WAVE_W 220
 #define BD_PARAM_Y 170
 #define BD_PARAM_H 80
-#define BD_HINT_Y 250
-#define BD_HINT_H 30
+#define BD_HINT_Y 238
+#define BD_HINT_H 42
 
 
 enum WaveType
@@ -32,6 +32,7 @@ enum EditMode
     EDIT_FREQ = 0,
     EDIT_SAT,
     EDIT_MIN_BRIGHT,
+    EDIT_MAX_BRIGHT,
     EDIT_HUE,
     EDIT_WAVE,
     EDIT_COUNT
@@ -42,7 +43,8 @@ struct BreathParams
     float frequency;
     uint8_t saturation;
     uint8_t minBrightness;
-    uint8_t hue;
+    uint8_t maxBrightness;
+    uint16_t hue; // 0~359，uint8_t 装不下
     WaveType waveType;
     bool paused;
 };
@@ -59,7 +61,7 @@ protected:
     void Exit();
 
     void handleRotate(int dir);
-    void handleShortPress();
+    void handleEditStep(int dir); // 切换设置项：+1 下一项（同 OK 键），-1 上一项
     void handleLongPress();
 
     void BD_DrawStatusBar(void);

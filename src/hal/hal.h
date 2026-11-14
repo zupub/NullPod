@@ -63,6 +63,22 @@ typedef struct
     bool isCalibrated;
 } MAG_Info_t;
 
+/* WiFi */
+typedef struct
+{
+    bool connected;      // STA 已连上路由器
+    bool portalActive;   // AP 配网门户正在运行
+    bool hasSaved;       // NVS 里存有网络配置
+    char apSsid[40];     // 热点名 esp-nullpod-XXXXXX
+    char ssid[33];       // 已连接的 SSID
+    char ip[16];
+    char gateway[16];
+    char mac[18];
+    int16_t rssi;
+    uint8_t channel;
+    uint32_t onlineSec;  // 本次连接时长（秒）
+} WifiInfo_t;
+
 enum TouchGesture : uint8_t
 {
     GESTURE_NONE = 0,
@@ -159,8 +175,19 @@ namespace HAL
     /* RTC */
     void RTC_Init();
     void adjustSysTime();
-    void syncNetworkTime();
     void setTimeFromCompileTime();
+
+    /* NTP 网络对时（非阻塞，需在主循环里反复调 Ntp_Update）*/
+    enum NtpResult : uint8_t
+    {
+        NTP_IDLE = 0, // 未开始 / 已复位
+        NTP_RUNNING,  // 连 WiFi + 等 SNTP 回包
+        NTP_OK,       // 已同步并写入 RTC
+        NTP_FAIL      // 超时或没有可用 WiFi
+    };
+    void Ntp_Begin();
+    NtpResult Ntp_Update();
+    void Ntp_Reset();
 
     /* SD */
     void SD_Init();
@@ -175,16 +202,24 @@ namespace HAL
     void Backlight_Init();
     void Backlight_Off();
     void setBrightness(uint8_t brightness);
+    void setBrightnessPreview(uint8_t brightness);
+    uint8_t getBrightness();
     uint8_t getVoltage();
 
     /* Buzzer */
+    void Buzzer_Init();
+    void setBuzzerEnabled(bool en);
+    bool isBuzzerEnabled();
     void beep(float frequency, uint32_t duration);
     void beepStop();
     void buzz(float frequency, uint32_t duration);
 
-    /* RGB LED */
+    /* RGB LED（全工程共用一颗 WS2812，实现在 hal_rgb.cpp）*/
     void RGB_Init(void);
     void RGB_Demo(uint8_t index);
+    void RGB_Set(uint8_t r, uint8_t g, uint8_t b);
+    void RGB_SetHSV(uint16_t h, uint8_t s, uint8_t v); // h 0~359，s/v 0~100
+    void RGB_Off(void);
 
     /* Encoder */
     void Encoder_Init();
@@ -203,8 +238,25 @@ namespace HAL
     bool BT_Init();
     void BT_Update();
 
+    /* WiFi（WiFiManager 非阻塞配网）*/
+    void Wifi_Init();
+    void Wifi_Connect();
+    void Wifi_Disconnect();
+    void Wifi_Update();
+    bool Wifi_IsConnected();
+    bool Wifi_IsPortalActive();
+    bool Wifi_HasSaved();
+    bool Wifi_StartPortal();
+    void Wifi_StopPortal();
+    void Wifi_Forget();
+    void Wifi_GetInfo(WifiInfo_t *out);
+
     /* System */
     tm *GetLocalTime();
+    bool isTime24Hour();
+    void setTime24Hour(bool on);
+    bool isWifiKeepAlive();
+    void setWifiKeepAlive(bool on);
     void logMemory();
     bool isReturn();
     bool isEnter();

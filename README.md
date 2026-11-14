@@ -9,12 +9,12 @@
 </div>
 
 <p align="center">
-  <strong><a href="README.md">中文</a> | <a href="README_EN.md">English</a></strong>
+  <strong><a href="README.md">中文</a> | <a href="README.en.md">English</a></strong>
 </p>
 
 # NullPod
 
-基于 **ESP32-S3** 的多功能掌上设备固件。以 HAL（硬件抽象层）+ 轮播式 Launcher + 独立 App 的分层结构组织代码，内置指南针、气压计、空中鼠标、红外遥控、Web 文件管理器、俄罗斯方块等应用。
+基于 **ESP32-S3** 的多功能掌上设备固件。以 HAL（硬件抽象层）+ 轮播式 Launcher + 独立 App 的分层结构组织代码，内置指南针、气压计、空中鼠标、红外遥控、Wi-Fi 配网、Web 文件管理器、设置项、电子木鱼与俄罗斯方块等应用。
 
 视频介绍：[Bilibili · BV1bdJe6aEVS](https://www.bilibili.com/video/BV1bdJe6aEVS)
 
@@ -28,6 +28,7 @@
 - [架构说明](#架构说明)
 - [快速开始](#快速开始)
 - [Web 文件管理器](#web-文件管理器)
+- [设置与 Wi-Fi](#设置与-wi-fi)
 - [新增一个应用](#新增一个应用)
 - [分区表](#分区表)
 - [第三方库](#第三方库)
@@ -45,10 +46,10 @@
 | 菜单项 | 说明 | 状态 |
 | --- | --- | --- |
 | Matrix | 数字雨屏保动画（`DigitalRainAnimation`） | 已实现 |
-| Dashboard | 表盘 / 仪表盘 | 占位 |
-| LED | WS2812 呼吸灯演示（`BreathDemo`） | 已实现 |
+| Dashboard | 圆形刻度仪表盘：编码器细调 1°/格，增量 1/2/4/8，RGB 随角度变色（`CircularDial`） | 已实现 |
+| LED | WS2812 呼吸灯：正弦 / 三角 / 脉冲 / 噪声四种波形，可调频率、饱和度、亮度区间与色相（`BreathDemo`） | 已实现 |
 | Remote | 红外遥控器，含虚拟按键、码库、宏、IR 学习与波形显示（`RemoteTV`） | 已实现 |
-| Music | 音乐播放（HAL 已预留 `Audio_*` 接口） | 占位 |
+| Music | 电子木鱼：按键或晃动敲击，功德 / 今日计数与跨天清零存 NVS（`WoodFish`） | 已实现 |
 | Weather | 天气 | 占位 |
 | Compass | 指南针：罗盘页 / 环境页（气压·海拔·温度）/ 水平仪页（`Compass`） | 已实现 |
 | Air Mouse | BLE 空中鼠标，IMU 姿态转指针位移，按键模拟左右键（`AirMouse`） | 已实现 |
@@ -56,8 +57,8 @@
 | Game | 俄罗斯方块，最高分持久化到 NVS（`Tetris`） | 已实现 |
 | Files | WiFi 热点 + Web 文件管理器（LittleFS） | 已实现 |
 | SD Card | 屏幕端 SD 卡文件浏览，识别 `.nes` 文件（`FileBrowser`） | 已实现 |
-| WiFi | WiFi 配置 | 占位 |
-| Settings | 设置（当前仅触发网络对时） | 占位 |
+| WiFi | Wi-Fi 配网：AP 门户 `esp-nullpod-XXXXXX` + 网络信息页（`WiFiManagerApp`） | 已实现 |
+| Settings | 设置：Keep WiFi / 蜂鸣器 / 亮度 / 12·24 小时制 / 网络对时（`SettingsApp`） | 已实现 |
 | About | 系统信息：RAM / PSRAM / Flash 占用环形图与 CPU 温度（`AboutApp`） | 已实现 |
 
 其他能力：
@@ -66,6 +67,8 @@
 - 触摸手势：轻点、长按、上/下/左/右滑动（`TouchGesture`）。
 - 旋转编码器走 PCNT 硬件计数，按键走统一 `Button` 类（短按/长按/去抖）。
 - 出错时屏幕端有彩色日志（`HAL_LOG_INFO/WARN/ERROR`），串口端有带文件行号的 `HAL_LOGI/E/W`。
+- 状态栏每秒刷新：RTC 时间（跟随 12/24 小时制设置）、Wi-Fi 图标、电量图标；长按电源键 2 秒关机，带提示音与进度条。
+- 设置项（亮度、蜂鸣器、时间制式、Keep WiFi）与 Wi-Fi 凭据统一写入 NVS 的 `config` 命名空间，掉电保持；网络对时走非阻塞的 `HAL::Ntp_Begin()` / `Ntp_Update()`。
 
 ## 硬件配置
 
@@ -121,10 +124,16 @@ NullPod_Master/
     │   ├── hal_dps.cpp       # BMP280 温度/气压/海拔
     │   ├── hal_rtc.cpp       # PCF8563 与网络对时
     │   ├── hal_sdcard.cpp    # SD 卡挂载与目录
-    │   ├── hal_power.cpp     # 电源自锁、关机、电量
+    │   ├── hal_power.cpp     # 电源自锁、关机、电量、背光
     │   ├── hal_buzzer.cpp    # 蜂鸣器
+    │   ├── hal_rgb.cpp       # 全工程共用的 WS2812 驱动
+    │   ├── hal_wifi.cpp      # WiFiManager 配网与网络信息
     │   └── Button.cpp/.h     # 按键状态机
     ├── apps/                 # 每个 App 一个类，暴露 Main()
+    │   ├── DigitalRainAnimation / CircularDial / BreathDemo / RemoteTV
+    │   ├── Compass / AirMouse / FileBrowser / FileManager
+    │   ├── WiFiManagerApp / SettingsApp / AboutApp
+    │   └── game/             # Tetris.cpp、WoodFish.cpp
     └── assets/               # 字体、图标、图片（部分经 embed_files 编入固件）
 ```
 
@@ -157,6 +166,13 @@ loop()
 | `HAL_LOGI / HAL_LOGW / HAL_LOGE` | 串口，带 `文件:行号` | HAL 层调试 |
 | `HAL_LOG_INFO / WARN / ERROR` | 屏幕画布（彩色标签） | 现场排障，无需串口 |
 
+### Wi-Fi 与网络对时
+
+- `hal_wifi.cpp` 封装 WiFiManager：所有动作都是非阻塞的，由上层 App 在主循环反复调用 `HAL::Wifi_Update()` 驱动；热点名固定为 `esp-nullpod-` 加 MAC 后 3 字节。
+- 配网结果（SSID / 密码）存入 NVS，`HAL::Wifi_HasSaved()` 可查是否已配置，`HAL::Wifi_Forget()` 清除配置。
+- 对时由 `HAL::Ntp_Begin()` 发起、`HAL::Ntp_Update()` 轮询，返回 `NTP_IDLE / NTP_RUNNING / NTP_OK / NTP_FAIL`，成功后写入 PCF8563；`HAL::Ntp_Reset()` 放弃本次请求。
+- `Keep WiFi` 开关决定 WiFi App 退出时是否保留射频（`HAL::isWifiKeepAlive()`），用来在功耗与联网体验之间取舍。
+
 ## 快速开始
 
 ### 环境要求
@@ -185,6 +201,8 @@ pio device monitor
 ```
 
 > 首次烧录新分区表后建议执行一次 `pio run -t erase`，避免旧分区残留数据导致 LittleFS 挂载失败。
+>
+> 当前固件 Flash 占用约 94%（app 槽 4MB），剩余不足 250KB，新增功能前请预留空间。
 
 ### 依赖配置要点
 
@@ -223,6 +241,45 @@ pio device monitor
 | `/storage` | GET | 容量信息 |
 
 静态文件缺失时固件会回退为纯 API 模式，此时请检查是否已执行 `pio run -t uploadfs`。
+
+## 设置与 Wi-Fi
+
+### Wi-Fi 配网
+
+进入 **WiFi** 应用后先显示连接提示页（倒计时结束自动进入配网，按 OK 立即进入）：
+
+| 项目 | 值 |
+| --- | --- |
+| 热点 | `esp-nullpod-XXXXXX`（MAC 后 3 字节） |
+| 配网地址 | `http://192.168.4.1` |
+
+配置成功后页面切换为网络信息页，显示 SSID / IP / 网关 / 信道 / 信号强度 / 在线时长。凭据保存在 NVS，下次进入自动重连；长按 OK 可忘记网络重新配网。
+
+> 这个热点用于上网（配网 + 对时），与 **Files** 应用开启的 `ESP32-S3-SD-Manager` 热点（仅用于文件管理）是两套独立逻辑。
+
+### 设置项
+
+**Settings** 应用为列表式设置页：旋钮或上下键切换条目，OK 确认，电源键返回上一级（弹窗内则关闭弹窗）。
+
+| 设置项 | 类型 | 说明 |
+| --- | --- | --- |
+| Keep WiFi | 开关 | 退出 WiFi 应用后保留射频；默认关闭 |
+| Buzzer | 开关 | 全局蜂鸣器开关，立即生效 |
+| Brightness | 滑块 | 背光 10%~100%，实时预览，OK 后写入 NVS |
+| Time Format | 12 / 24 小时 | 影响状态栏与设置页时间显示 |
+| Network Time | 动作 | NTP 对时（`pool.ntp.org`），成功后写入 RTC |
+
+写入 NVS（命名空间 `config`）的键：
+
+| 键 | 含义 |
+| --- | --- |
+| `lcd_bk` | 背光亮度 |
+| `buzzer_en` | 蜂鸣器开关 |
+| `time_fmt` | 12 / 24 小时制 |
+| `wifi_keep` | Keep WiFi |
+| `wifi_ssid` / `wifi_password` | Wi-Fi 凭据 |
+
+> 游戏与木鱼等应用另有自己的命名空间：俄罗斯方块最高分在 `tetris`，木鱼的功德 / 今日计数在 `woodfish`。
 
 ## 新增一个应用
 
@@ -291,9 +348,12 @@ LittleFS 的 SubType 沿用 `spiffs` 以兼容工具链，挂载时按名称 `li
 
 ## 已知限制
 
-- 部分菜单项（Dashboard / Music / Weather / Barometer / WiFi / Settings）目前只是占位，进入后仅打印日志或执行极简逻辑；`hal.h` 中的 `Audio_*`、`BT_*` 接口已声明但尚未实现。
+- 仍有 **Weather / Barometer** 两个菜单项是占位，进入后仅打印日志；`hal.h` 中的 `Audio_*`、`BT_*` 接口已声明但尚未实现。
+- **Music** 槽位实际进入的是电子木鱼（`WoodFish`），菜单文案与图标尚未改名。
+- 固件 Flash 占用已接近 app 分区上限（约 3.96MB / 4MB，94%），新增功能前建议先精简字体、图标资源或调整分区表。
+- 设置中的「Keep WiFi」只在 WiFi 应用退出时决定是否断开射频，运行中的 STA 连接不会实时断开。
 - `hal.cpp` 中 `HAL::Update()` 的周期更新调用目前被注释，各 App 需自行驱动传感器刷新。
-- `HAL::Init()` 中 `RGB_Init()` 被注释，WS2812 由 LED 应用自行初始化。
+- `HAL::Init()` 中 `RGB_Init()` 被注释，WS2812 由 LED / Dashboard 应用按需初始化（`hal_rgb.cpp` 内部保证只初始化一次）。
 - Web 文件管理器工作于 AP 模式，热点密码硬编码在 `FileManager.cpp` 中，正式发布前请自行修改。
 
 ## 致谢

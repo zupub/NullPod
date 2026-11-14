@@ -1,18 +1,12 @@
 #include "BreathDemo.h"
-#include <Adafruit_NeoPixel.h>
 #include <math.h>
 
 // ============ 全局实例 ============
 BreathDemo g_breathDemo;
 
 // ============ 字符串 ============
-const char *waveNames[] = {"Sine", "Triangle", "Pulse", "Noise"};
-const char *editLabels[] = {"Freq Hz", "Sat %", "Min Bright %", "Hue", "Wave"};
-
-// ============ LED ============
-#define WS2812_PIN HAL_PIN_RGB
-#define LED_COUNT 1
-static Adafruit_NeoPixel led(LED_COUNT, WS2812_PIN, NEO_GRB + NEO_KHZ800);
+const char *waveNames[] = {"Sine", "Tri", "Pulse", "Noise"}; // Tri: 带冒号的 "Wave: Triangle" 有 121px，会超出屏幕
+const char *editLabels[] = {"Freq", "Sat", "Min", "Max", "Hue", "Wave"};
 
 // ============ Init ============
 void BreathDemo::Init()
@@ -31,6 +25,7 @@ void BreathDemo::Init()
     params.frequency = 0.5f;
     params.saturation = 85;
     params.minBrightness = 5;
+    params.maxBrightness = 60;
     params.hue = 180;
     params.waveType = WAVE_SINE;
     params.paused = false;
@@ -39,9 +34,8 @@ void BreathDemo::Init()
     for (int i = 0; i < 64; i++)
         noiseLUT[i] = (float)rand() / RAND_MAX;
 
-    led.begin();
-    led.setBrightness(255);
-    led.show();
+    HAL::RGB_Init();
+    HAL::RGB_Off();
 
     Serial.println(">>> BreathDemo Init");
     Draw();
@@ -53,8 +47,7 @@ void BreathDemo::Exit()
 {
     breath_active = false;
     // 关灯
-    led.setPixelColor(0, 0, 0, 0);
-    led.show();
+    HAL::RGB_Off();
     Serial.println(">>> BreathDemo Exit");
 }
 
@@ -99,7 +92,7 @@ void BreathDemo::Update()
         dt = 0.016f; // clamp 防溢出
     last_frame = now;
 
-    // ===== 编码器事件 =====
+    // ===== 按键事件（编码器 + 方向键）=====
     uint8_t key = 0;
     bool touched = HAL::getEncoder(&key);
 
@@ -113,14 +106,28 @@ void BreathDemo::Update()
         case BTN_ENC_CC:
             handleRotate(-1);
             break;
-        case BTN_OK_SP:
-            handleShortPress();
+
+        // 上下键：等价于正/反向旋转，直接调整当前项
+        case BTN_UP_SP:
+            handleRotate(+1);
             break;
+        case BTN_DOWN_SP:
+            handleRotate(-1);
+            break;
+
+        // 左右键：切换设置项（右键同 OK 键向下，左键回上一项）
+        case BTN_RIGHT_SP:
+        case BTN_OK_SP:
+            handleEditStep(+1);
+            break;
+        case BTN_LEFT_SP:
+            handleEditStep(-1);
+            break;
+
         case BTN_OK_LP:
             handleLongPress();
             break;
         default:
-            Serial.printf(">>> Unknown key: 0x%02X\n", key);
             break;
         }
     }
@@ -157,7 +164,10 @@ void BreathDemo::Update()
     if (ledPhase > TWO_PI) ledPhase -= TWO_PI;
     float waveVal = getWaveValue(ledPhase, params.waveType);
     float minB = params.minBrightness / 100.0f;
-    float bright01 = minB + waveVal * (1.0f - minB);
+    float maxB = params.maxBrightness / 100.0f;
+    if (maxB < minB)
+        maxB = minB;
+    float bright01 = minB + waveVal * (maxB - minB);
 
     // HSV → RGB565 → 提取分量 → 按亮度缩放
     uint16_t hue16 = guideMode ? 200 : params.hue;
@@ -172,8 +182,7 @@ void BreathDemo::Update()
     uint8_t gg = (g6 * br) / 63;
     uint8_t bb = (b5 * br) / 31;
 
-    led.setPixelColor(0, rr, gg, bb);
-    led.show();
+    HAL::RGB_Set(rr, gg, bb);
 
     currentBrightness = br;
 
@@ -213,28 +222,38 @@ void BreathDemo::handleRotate(int dir)
         break;
 
     case EDIT_SAT:
-        params.saturation += delta * 2;
-        if (params.saturation > 100)
-            params.saturation = 100;
-        if (params.saturation < 0)
-            params.saturation = 0;
+    {
+        // 一律先在 int 上算再夹紧：uint8_t 减到 0 以下会回绕成 252，看上去像“调小变成最大”
+        int v = (int)params.saturation + delta * 2;
+        params.saturation = (uint8_t)constrain(v, 0, 100);
         break;
+    }
 
     case EDIT_MIN_BRIGHT:
-        params.minBrightness += delta * 2;
-        if (params.minBrightness > 50)
-            params.minBrightness = 50;
-        if (params.minBrightness < 0)
-            params.minBrightness = 0;
+    {
+        int v = (int)params.minBrightness + delta * 2;
+        params.minBrightness = (uint8_t)constrain(v, 0, 50);
         break;
+    }
+
+    case EDIT_MAX_BRIGHT:
+    {
+        int v = (int)params.maxBrightness + delta * 2;
+        params.maxBrightness = (uint8_t)constrain(v, 50, 100);
+        break;
+    }
 
     case EDIT_HUE:
-        params.hue += delta * 5;
-        if (params.hue > 359)
-            params.hue -= 360;
-        if (params.hue < 0)
-            params.hue += 360;
+    {
+        // hue 是 0~359，不能直接对 uint16_t 做越界判断后存回 uint8_t（会在 256 处崩跳）
+        int h = (int)params.hue + delta * 5;
+        if (h > 359)
+            h -= 360;
+        if (h < 0)
+            h += 360;
+        params.hue = (uint16_t)h;
         break;
+    }
 
     case EDIT_WAVE:
         int w = (int)params.waveType + delta;
@@ -247,13 +266,15 @@ void BreathDemo::handleRotate(int dir)
     }
 }
 
-void BreathDemo::handleShortPress()
+void BreathDemo::handleEditStep(int dir)
 {
     if (guideMode)
         return;
-    currentEdit++;
+    currentEdit += dir;
     if (currentEdit >= EDIT_COUNT)
         currentEdit = 0;
+    if (currentEdit < 0)
+        currentEdit = EDIT_COUNT - 1;
     Serial.printf(">>> Edit: %s\n", editLabels[currentEdit]);
 }
 
@@ -284,40 +305,37 @@ void BreathDemo::Draw()
 }
 
 // ============ 状态栏 ============
+// 与 Settings / WiFi 等 App 保持一致：12pt 粗体标题居中 + 底部分隔线
 void BreathDemo::BD_DrawStatusBar()
 {
-    canvas.fillRect(0, 0, SCREEN_WIDTH, BD_STATUS_H, MENU_BG_COLOR);
+    canvas.fillRect(0, 0, SCREEN_WIDTH, BD_STATUS_H, MENU_STATUS_COLOR);
 
-    canvas.setTextColor(TFT_WHITE);
     canvas.setTextSize(1);
-    canvas.setFont(&FreeSans9pt7b);
-
-    canvas.setCursor(8, 20);
-    if (guideMode)
-    {
-        canvas.setTextColor(rgb565(0, 200, 255));
-        canvas.print("Guide Mode");
-    }
-    else
-    {
-        canvas.setTextColor(TFT_WHITE);
-        canvas.print("Breath Demo");
-    }
+    canvas.setFont(&FreeSansBold12pt7b);
+    canvas.setTextDatum(MC_DATUM);
+    canvas.setTextColor(guideMode ? rgb565(0, 200, 255) : TFT_WHITE);
+    canvas.drawString(guideMode ? "Guide Mode" : "Breath Demo",
+                      SCREEN_WIDTH / 2, BD_STATUS_H / 2);
+    canvas.setTextDatum(0);
 
     // LED 实时颜色预览
     uint16_t dotColor = hsv2rgb565(
         guideMode ? 200 : params.hue,
         params.saturation,
         map(currentBrightness, 0, 255, 0, 100));
-    canvas.fillCircle(SCREEN_WIDTH - 20, 14,
+    canvas.fillCircle(SCREEN_WIDTH - 18, BD_STATUS_H / 2,
                       (currentBrightness > 128) ? 6 : 4, dotColor);
 
+    // 暂停：左上角双竖杠（文字会和居中标题挤在一起）
     if (params.paused && !guideMode)
     {
-        canvas.setCursor(SCREEN_WIDTH - 60, 20);
-        canvas.setTextColor(MENU_HINT_COLOR);
-        canvas.print("PAUSE");
+        int px = 10;
+        int py = BD_STATUS_H / 2 - 6;
+        canvas.fillRect(px, py, 4, 12, MENU_HINT_COLOR);
+        canvas.fillRect(px + 7, py, 4, 12, MENU_HINT_COLOR);
     }
+
+    canvas.drawFastHLine(0, BD_STATUS_H, SCREEN_WIDTH, MENU_BORDER_COLOR);
 }
 
 // ============ 波形区 ============
@@ -418,31 +436,45 @@ void BreathDemo::BD_DrawParamArea()
         switch (i)
         {
         case EDIT_FREQ:
-            canvas.printf("Freq %.2fHz", params.frequency);
+            canvas.printf("Freq: %.2fHz", params.frequency);
             break;
         case EDIT_SAT:
-            canvas.printf("Sat %d%%", params.saturation);
+            canvas.printf("Sat: %d%%", params.saturation);
             break;
         case EDIT_MIN_BRIGHT:
-            canvas.printf("Min %d%%", params.minBrightness);
+            canvas.printf("Min: %d%%", params.minBrightness);
+            break;
+        case EDIT_MAX_BRIGHT:
+            canvas.printf("Max: %d%%", params.maxBrightness);
             break;
         case EDIT_HUE:
-            canvas.printf("Hue %d", params.hue);
-            canvas.fillRect(x + 90, y - 10, 20, 14, hsv2rgb565(params.hue, 80, 80));
+        {
+            char buf[16];
+            snprintf(buf, sizeof(buf), "Hue: %d", params.hue);
+            canvas.print(buf);
+            // 色块紧跟文字后面（原来固定 x+90，Hue 在第 2 列时会贴到右边屏外）
+            int sx = (active ? x + 12 : x) + canvas.textWidth(buf) + 6;
+            canvas.fillRect(sx, y, 18, 14, hsv2rgb565(params.hue, 80, 80));
             break;
+        }
         case EDIT_WAVE:
-            canvas.printf("Wave %s", waveNames[params.waveType]);
+            canvas.printf("Wave: %s", waveNames[params.waveType]);
             break;
         }
     }
 
     if (params.paused && !guideMode)
     {
-        canvas.fillRect(0, yBase + BD_PARAM_H - 4, SCREEN_WIDTH, 4, MENU_HINT_COLOR);
+        // 提示栏上移到 y=238，暂停条改画在提示栏上沿，避免被盖住
+        canvas.fillRect(0, BD_HINT_Y - 4, SCREEN_WIDTH, 4, MENU_HINT_COLOR);
     }
 }
 
 // ============ 提示栏 ============
+// 9pt 字体实测字宽：旧文案 "CW/CC:Adj  SP:Next  LP:Guide  GPIO17:Back" 占 373px，
+// "SP:Exit  LP:Normal  GPIO17:Back" 占 273px，都远超 240px 屏幕，单行放不下。
+// 改为两行居中，行高按字体 yAdvance=22。
+// 方向键接入后重新实测："UP/DN:Adj  L/R/OK:Item" 196px、"HOLD:Guide  PWR:Back" 201px。
 void BreathDemo::BD_DrawHintBar()
 {
     canvas.fillRect(0, BD_HINT_Y, SCREEN_WIDTH, BD_HINT_H, MENU_STATUS_COLOR);
@@ -450,11 +482,25 @@ void BreathDemo::BD_DrawHintBar()
     canvas.setTextSize(1);
     canvas.setFont(&FreeSans9pt7b);
 
-    canvas.setCursor(15, BD_HINT_Y + 20);
+    const char *lines[2];
     if (guideMode)
-        canvas.print("SP:Exit  LP:Normal  GPIO17:Back");
+    {
+        lines[0] = "OK: Exit  HOLD: Normal";
+        lines[1] = "PWR: Back";
+    }
     else
-        canvas.print("CW/CC:Adj  SP:Next  LP:Guide  GPIO17:Back");
+    {
+        // 方向键全部接入：上行调参 + 切换项（L/R 与 OK 同效），下行保留长按/退出
+        lines[0] = "UP/DN:Adj  L/R/OK:Item";
+        lines[1] = "HOLD:Guide  PWR:Back";
+    }
+
+    for (int i = 0; i < 2; i++)
+    {
+        int16_t w = canvas.textWidth(lines[i]);
+        canvas.setCursor((SCREEN_WIDTH - w) / 2, BD_HINT_Y + i * 22);
+        canvas.print(lines[i]);
+    }
 }
 
 // ============ 波形函数 ============
@@ -573,6 +619,5 @@ uint16_t BreathDemo::hsv2rgb565(uint16_t h, uint8_t s, uint8_t v)
 // ============ LED 控制 ============
 void BreathDemo::SetLED(uint8_t r, uint8_t g, uint8_t b)
 {
-    led.setPixelColor(0, r, g, b);
-    led.show();
+    HAL::RGB_Set(r, g, b);
 }

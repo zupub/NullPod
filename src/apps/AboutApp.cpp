@@ -57,16 +57,25 @@ void AboutApp::drawRings()
     canvas->setFont(&fonts::FreeSans9pt7b);
 
     // 显示三条环的数值
-    char buf[16];
+    char texts[RING_COUNT][16];
+    int rightEdge = CX - 18;
+    for (int i = 0; i < RING_COUNT; ++i)
+    {
+        snprintf(texts[i], sizeof(texts[i]), "%s:%d%%", rings[i].label, rings[i].percent);
+        const int w = canvas->textWidth(texts[i]);
+        if (w + 2 > rightEdge)
+            rightEdge = w + 2;
+    }
+
     for (int i = 0; i < RING_COUNT; ++i)
     {
         canvas->setTextColor(rings[i].color);
-        snprintf(buf, sizeof(buf), "%s:%3d%%", rings[i].label, rings[i].percent);
-        canvas->drawString(buf, CX - 15, CY - rings[i].rOuter + 4);
+        canvas->drawString(texts[i], rightEdge, CY - rings[i].rOuter + 4);
     }
 
     canvas->setTextDatum(textdatum_t::middle_center);
     canvas->setTextColor(TFT_GREEN);
+    char buf[16];
     snprintf(buf, sizeof(buf), "%.1f°C", cpuTemp);
     canvas->drawString(buf, CX, CY, &fonts::efontCN_16_b);
 

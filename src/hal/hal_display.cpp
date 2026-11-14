@@ -14,6 +14,7 @@ uint8_t bl_backlight = 0;
 uint32_t flash_size;
 
 void set_lcd_bk_brightness(uint16_t value);
+void applyBrightness(uint8_t brightness);
 
 void HAL::LCD_Init()
 {
@@ -98,6 +99,25 @@ void HAL::Backlight_Off()
 
 void HAL::setBrightness(uint8_t brightness)
 {
+    applyBrightness(brightness);
+    set_lcd_bk_brightness(brightness); // 持久化到 NVS
+}
+
+// 仅调 PWM，不写 NVS：供滑块编辑时实时预览，确认后再调 setBrightness() 保存
+void HAL::setBrightnessPreview(uint8_t brightness)
+{
+    applyBrightness(brightness);
+}
+
+uint8_t HAL::getBrightness()
+{
+    return bl_backlight;
+}
+
+void applyBrightness(uint8_t brightness)
+{
+    bl_backlight = brightness;
+
     uint32_t duty = 0;
     if (brightness)
     {
@@ -113,7 +133,6 @@ void HAL::setBrightness(uint8_t brightness)
     }
 
     ledcWrite(bl_pwm_channel, duty);
-    set_lcd_bk_brightness(brightness);
 }
 
 void set_lcd_bk_brightness(uint16_t value)

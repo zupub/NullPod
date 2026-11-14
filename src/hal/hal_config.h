@@ -73,6 +73,9 @@
 #define FFAT_KEY "ffat"
 #define LCD_BK_BRIGHTNESS_KEY "lcd_bk"
 #define LCD_BK_TIME_OUT_KEY "lcd_time"
+#define BUZZER_EN_KEY "buzzer_en"
+#define TIME_FORMAT_KEY "time_fmt"
+#define WIFI_KEEPALIVE_KEY "wifi_keep"
 #define WIFI_SSID_KEY "wifi_ssid"
 #define WIFI_PASSWORD_KEY "wifi_password"
 

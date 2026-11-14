@@ -1,5 +1,6 @@
 #include "launcher.h"
 #include "apps/DigitalRainAnimation.h"
+#include "apps/CircularDial.h"
 #include "apps/BreathDemo.h"
 #include "apps/FileBrowser.h"
 #include "apps/FileManager.h"
@@ -7,7 +8,10 @@
 #include "apps/RemoteTV.h"
 #include "apps/Compass.h"
 #include "apps/game/Tetris.h"
+#include "apps/game/WoodFish.h"
+#include "apps/WiFiManagerApp.h"
 #include "apps/AboutApp.h"
+#include "apps/SettingsApp.h"
 
 // ============ App 状态 ============
 static AppState appState = STATE_MENU;
@@ -36,7 +40,8 @@ void loop()
         break;
 
     case STATE_DIAL:
-        Serial.println(">>> Dashboard App");
+        Serial.println(">>> Circular Dial App");
+        g_circularDial.Main();
         appState = STATE_MENU;
         break;
 
@@ -54,6 +59,7 @@ void loop()
 
     case STATE_MUSIC:
         Serial.println(">>> Music App");
+        g_woodfish.Main();
         appState = STATE_MENU;
         break;
 
@@ -99,12 +105,13 @@ void loop()
 
     case STATE_WIFI:
         Serial.println(">>> WiFi App");
+        g_WiFiManagerApp.Main();
         appState = STATE_MENU;
         break;
 
     case STATE_SETTINGS:
         Serial.println(">>> Settings App");
-        HAL::syncNetworkTime();
+        g_settingsApp.Main();
         appState = STATE_MENU;
         break;
 

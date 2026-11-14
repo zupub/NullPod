@@ -30,6 +30,9 @@ int getRamPercent();
 int getPsramPercent();
 int getFlashPercent();
 void drawScaledIcon(LGFX_Sprite *canvas, int16_t x, int16_t y, float scale, const uint16_t *src, bool clicked);
-void drawWedgeLine(LGFX_Sprite *s, float x0, float y0, float x1, float y1, float w0, float w1, uint32_t color, uint32_t bg);
+
+// 模拟 TFT_eSPI 的 drawWedgeLine（LovyanGFX 未提供该接口）
+// 沿 (x0,y0)-(x1,y1) 画宽度由 w0 渐变到 w1 的楔形线，color 为 RGB565
+void drawWedgeLine(LGFX_Sprite *s, float x0, float y0, float x1, float y1, float w0, float w1, uint16_t color, uint16_t bg);
 
 #endif

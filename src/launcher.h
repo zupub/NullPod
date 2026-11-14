@@ -22,8 +22,8 @@
 #define STATUS_BG BG_BOTTOM
 #define STATUS_TIME_COL TEXT_WHITE
 #define STATUS_TITLE_COL rgb565(180, 200, 255)
-#define WIFI_ON_COL rgb565(0, 200, 100)  // 绿：已连接
-#define WIFI_OFF_COL rgb565(120, 60, 60) // 暗红：断开
+#define WIFI_ON_COL TEXT_WHITE              // 白：已连接（与图标原色一致）
+#define WIFI_OFF_COL rgb565(112, 112, 118)  // 灰：未连接（置灰）
 #define BT_ON_COL rgb565(0, 160, 220)    // 青：已连接
 #define BT_OFF_COL rgb565(120, 60, 60)   // 暗红：断开
 
