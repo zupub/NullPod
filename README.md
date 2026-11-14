@@ -27,6 +27,7 @@
 - [仓库结构](#仓库结构)
 - [架构说明](#架构说明)
 - [快速开始](#快速开始)
+- [发布与烧录](#发布与烧录)
 - [Web 文件管理器](#web-文件管理器)
 - [设置与 Wi-Fi](#设置与-wi-fi)
 - [新增一个应用](#新增一个应用)
@@ -218,6 +219,62 @@ pio device monitor
 | `board_upload.flash_size` | `16MB` | Flash 容量 |
 | `build_flags` | `ARDUINO_USB_CDC_ON_BOOT=1` 等 | USB CDC 串口、PSRAM、调试等级 |
 | `board_build.embed_files` | `compass_dial.png`、`woodfish.png` | 图片直接编入固件 |
+
+## 发布与烧录
+
+发布固件时把分散的构建产物合并成一个镜像：对方拿到一个文件、烧到 `0x0` 就能启动。
+
+| 文件 | 内容 | 大小 | 烧录地址 |
+| --- | --- | --- | --- |
+| `NullPod-ESP32S3-N16R8-merged.bin` | bootloader + 分区表 + boot_app0 + 应用 | ≈3.84 MB | `0x0` |
+| `NullPod-ESP32S3-N16R8-littlefs.bin` | `data/` 下的 Web 资源 | 7.875 MB | `0x810000` |
+
+LittleFS 分区固定占 7.875MB，若一起合并，镜像会膨胀到 16MB，因此拆成两个文件：只烧固件就能开机使用，只有需要 **Files** 应用的 Web 页面时才需要补烧文件系统。
+
+### 生成合并镜像
+
+```bash
+# 1. 编译固件与文件系统镜像
+pio run
+pio run -t buildfs
+
+# 2. 合并为单个镜像（esptool 由 PlatformIO 自带）
+pio pkg exec -p tool-esptoolpy -- esptool.py --chip esp32s3 merge_bin \
+  -o dist/NullPod-ESP32S3-N16R8-merged.bin \
+  --flash_mode qio --flash_freq 80m --flash_size 16MB \
+  0x0 .pio/build/esp32-s3-devkitc-1/bootloader.bin \
+  0x8000 .pio/build/esp32-s3-devkitc-1/partitions.bin \
+  0xe000 ~/.platformio/packages/framework-arduinoespressif32/tools/partitions/boot_app0.bin \
+  0x10000 .pio/build/esp32-s3-devkitc-1/firmware.bin
+
+# 3. 复制文件系统镜像
+cp .pio/build/esp32-s3-devkitc-1/littlefs.bin \
+   dist/NullPod-ESP32S3-N16R8-littlefs.bin
+```
+
+> `boot_app0.bin` 在 PlatformIO 框架包内，Windows 路径为 `%USERPROFILE%\.platformio\packages\framework-arduinoespressif32\tools\partitions\boot_app0.bin`。
+>
+> `merge_bin` 若提示 `0x0` 处镜像带 hash 校验、不改写 flash mode，属于正常行为。
+
+### 烧录合并镜像
+
+```bash
+# 首次烧录或换过分区表，先整片擦除
+pio pkg exec -p tool-esptoolpy -- esptool.py --chip esp32s3 -p COM5 erase_flash
+
+# 只烧固件
+pio pkg exec -p tool-esptoolpy -- esptool.py --chip esp32s3 -p COM5 -b 460800 \
+  write_flash 0x0 dist/NullPod-ESP32S3-N16R8-merged.bin
+
+# 固件 + Web 资源
+pio pkg exec -p tool-esptoolpy -- esptool.py --chip esp32s3 -p COM5 -b 460800 \
+  write_flash 0x0 dist/NullPod-ESP32S3-N16R8-merged.bin \
+              0x810000 dist/NullPod-ESP32S3-N16R8-littlefs.bin
+```
+
+图形化烧录可使用 Flash Download Tool 或 [esptool-js](https://espressif.github.io/esptool-js/)，按上表填入两个文件与地址。
+
+合并镜像随 [Releases](https://github.com/zupub/NullPod/releases) 分发，仓库只保留源码，避免二进制进入版本历史。
 
 ## Web 文件管理器
 

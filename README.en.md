@@ -27,6 +27,7 @@ Hardware (open source, Chinese site)：[https://oshwhub.com/zupub/project_vnrjys
 - [Repository Layout](#repository-layout)
 - [Architecture](#architecture)
 - [Getting Started](#getting-started)
+- [Release & Flashing](#release--flashing)
 - [Web File Manager](#web-file-manager)
 - [Settings & Wi-Fi](#settings--wi-fi)
 - [Adding a New App](#adding-a-new-app)
@@ -218,6 +219,62 @@ Highlights from [`platformio.ini`](platformio.ini):
 | `board_upload.flash_size` | `16MB` | Flash size |
 | `build_flags` | `ARDUINO_USB_CDC_ON_BOOT=1`, … | USB CDC serial, PSRAM, debug level |
 | `board_build.embed_files` | `compass_dial.png`, `woodfish.png` | Images embedded into firmware |
+
+## Release & Flashing
+
+When publishing a build, merge the separate artifacts into a single image so others only need one file and one flash offset.
+
+| File | Contents | Size | Offset |
+| --- | --- | --- | --- |
+| `NullPod-ESP32S3-N16R8-merged.bin` | bootloader + partition table + boot_app0 + application | ≈3.84 MB | `0x0` |
+| `NullPod-ESP32S3-N16R8-littlefs.bin` | Web assets from `data/` | 7.875 MB | `0x810000` |
+
+The LittleFS partition is a fixed 7.875MB, so merging it in would inflate the image to 16MB. Hence two files: the firmware alone boots the device, and the filesystem is only needed for the **Files** app's web UI.
+
+### Building the merged image
+
+```bash
+# 1. Build firmware and filesystem image
+pio run
+pio run -t buildfs
+
+# 2. Merge into a single image (esptool ships with PlatformIO)
+pio pkg exec -p tool-esptoolpy -- esptool.py --chip esp32s3 merge_bin \
+  -o dist/NullPod-ESP32S3-N16R8-merged.bin \
+  --flash_mode qio --flash_freq 80m --flash_size 16MB \
+  0x0 .pio/build/esp32-s3-devkitc-1/bootloader.bin \
+  0x8000 .pio/build/esp32-s3-devkitc-1/partitions.bin \
+  0xe000 ~/.platformio/packages/framework-arduinoespressif32/tools/partitions/boot_app0.bin \
+  0x10000 .pio/build/esp32-s3-devkitc-1/firmware.bin
+
+# 3. Copy the filesystem image
+cp .pio/build/esp32-s3-devkitc-1/littlefs.bin \
+   dist/NullPod-ESP32S3-N16R8-littlefs.bin
+```
+
+> `boot_app0.bin` lives inside the PlatformIO framework package; on Windows it is `%USERPROFILE%\.platformio\packages\framework-arduinoespressif32\tools\partitions\boot_app0.bin`.
+>
+> A `merge_bin` warning that the image at `0x0` is hash-protected and the flash mode is kept is expected.
+
+### Flashing the merged image
+
+```bash
+# Erase first on a new board or after a partition table change
+pio pkg exec -p tool-esptoolpy -- esptool.py --chip esp32s3 -p COM5 erase_flash
+
+# Firmware only
+pio pkg exec -p tool-esptoolpy -- esptool.py --chip esp32s3 -p COM5 -b 460800 \
+  write_flash 0x0 dist/NullPod-ESP32S3-N16R8-merged.bin
+
+# Firmware + web assets
+pio pkg exec -p tool-esptoolpy -- esptool.py --chip esp32s3 -p COM5 -b 460800 \
+  write_flash 0x0 dist/NullPod-ESP32S3-N16R8-merged.bin \
+              0x810000 dist/NullPod-ESP32S3-N16R8-littlefs.bin
+```
+
+GUI tools such as Flash Download Tool or [esptool-js](https://espressif.github.io/esptool-js/) work too — use the two offsets from the table above.
+
+Merged images ship with [Releases](https://github.com/zupub/NullPod/releases); the repository keeps source only so binaries never enter the version history.
 
 ## Web File Manager
 
