@@ -47,7 +47,7 @@ On boot the device shows an icon carousel. Rotate the encoder (or use the D-pad)
 | --- | --- | --- |
 | Matrix | Digital rain screen saver (`DigitalRainAnimation`) | Implemented |
 | Dashboard | Circular gauge dial: 1° per encoder click, 1/2/4/8 increment, RGB hue follows the angle (`CircularDial`) | Implemented |
-| LED | WS2812 breathing light: sine / triangle / pulse / noise waveforms with adjustable frequency, saturation, brightness range and hue (`BreathDemo`) | Implemented |
+| LED | WS2812 breathing light: adjustable waveform, frequency, saturation, brightness range and hue (`BreathDemo`) | Implemented |
 | Remote | IR remote with virtual pad, code list, macros, IR learning and waveform view (`RemoteTV`) | Implemented |
 | Music | Electronic wooden fish: tap by key or shake, merit / today counters with daily reset stored in NVS (`WoodFish`) | Implemented |
 | Weather | Weather | Placeholder |
@@ -335,7 +335,7 @@ Everything under `lib/` is vendored into the repository so builds are reproducib
 | IRremote | 4.7.1 | IR transmit/receive |
 | Adafruit NeoPixel | 1.15.2 | WS2812 |
 | ESP32 BLE Mouse / NimBLE-Arduino | 0.4.0 / 2.2.3 | BLE air mouse |
-| WiFiManager | 2.0.17 | Wi-Fi provisioning (reserved) |
+| WiFiManager | 2.0.17 | Wi-Fi provisioning |
 
 ## Development Conventions
 

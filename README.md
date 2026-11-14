@@ -47,7 +47,7 @@
 | --- | --- | --- |
 | Matrix | 数字雨屏保动画（`DigitalRainAnimation`） | 已实现 |
 | Dashboard | 圆形刻度仪表盘：编码器细调 1°/格，增量 1/2/4/8，RGB 随角度变色（`CircularDial`） | 已实现 |
-| LED | WS2812 呼吸灯：正弦 / 三角 / 脉冲 / 噪声四种波形，可调频率、饱和度、亮度区间与色相（`BreathDemo`） | 已实现 |
+| LED | WS2812 呼吸灯：四种波形，可调频率、饱和度、亮度区间与色相（`BreathDemo`） | 已实现 |
 | Remote | 红外遥控器，含虚拟按键、码库、宏、IR 学习与波形显示（`RemoteTV`） | 已实现 |
 | Music | 电子木鱼：按键或晃动敲击，功德 / 今日计数与跨天清零存 NVS（`WoodFish`） | 已实现 |
 | Weather | 天气 | 占位 |
@@ -335,7 +335,7 @@ LittleFS 的 SubType 沿用 `spiffs` 以兼容工具链，挂载时按名称 `li
 | IRremote | 4.7.1 | 红外收发 |
 | Adafruit NeoPixel | 1.15.2 | WS2812 |
 | ESP32 BLE Mouse / NimBLE-Arduino | 0.4.0 / 2.2.3 | BLE 空中鼠标 |
-| WiFiManager | 2.0.17 | WiFi 配网（预留） |
+| WiFiManager | 2.0.17 | WiFi 配网 |
 
 ## 开发约定
 
