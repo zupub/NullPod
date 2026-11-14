@@ -171,7 +171,7 @@ void SettingsApp::drawList()
     canvas->setFont(&fonts::FreeSans9pt7b);
     canvas->setTextDatum(MC_DATUM);
     canvas->setTextColor(COL_HINT);
-    canvas->drawString("OK: select   PWR: back", SCREEN_WIDTH / 2, SCREEN_HEIGHT - 16);
+    canvas->drawString("OK: select   PWR: back", SCREEN_WIDTH / 2, SCREEN_HEIGHT - 12);
 
     canvas->setTextDatum(0); // 恢复默认
 }
